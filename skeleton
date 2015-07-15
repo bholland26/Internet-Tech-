@@ -1,0 +1,64 @@
+import java.lang.*;
+import java.net.*;
+import java.io.*;
+import java.net.ServerSocket;
+import java.net.Socket;
+
+public class SimpleHTTPServer implements Runnable
+{
+	Socket cliSocket;
+	SimpleHTTPServer(Socket cliSocket){
+		this.cliSocket = cliSocket;
+	}
+	
+
+	//standard server socket creation 
+	public static void main(String[] args)
+	{
+		//intilize varibalbe before try catch
+		ServerSocket serverSocket = null;
+
+		//read port from command line and convert to int
+		int port = Integer.parseInt(args[0]);
+
+		//create server socket
+		try {
+			serverSocket = new ServerSocket(port);
+			System.out.println("listening\n");
+			Socket clientSocket = serverSocket.accept();
+			System.out.println("Connected\n");
+			new Thread(new SimpleHTTPServer(clientSocket)).start();
+			
+		} catch (IOException e){
+
+		}
+		//return;
+	}
+
+
+/*
+//class to create a single therad by extending thread for testing 
+class SingleThread extends Thread {
+	Socket cliSocket;
+
+	public SingleThread(Socket cliSocket){
+		this.cliSocket = cliSocket;
+	}
+
+/*/	
+//method to run newly created thread and write to cilent
+	public void run(){
+		try {
+			BufferedReader in = new BufferedReader(new InputStreamReader(cliSocket.getInputStream()));
+			PrintWriter out = new PrintWriter(cliSocket.getOutputStream());
+			//ServiceRequest request = in.getRequest();
+			//while (!cliSocket.isClosed()){
+				out.write("Hope this works/n");
+			//}
+			cliSocket.close();
+		} catch (Exception e){
+
+		}
+	}
+}
+
