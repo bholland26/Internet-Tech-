@@ -1,0 +1,155 @@
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.net.Socket;
+import java.io.File;
+import java.io.FileReader;
+
+
+public class ClientService extends Thread{
+	Socket socket;
+    boolean runThread = true; 
+    boolean server = true;
+    private final static String line=System.getProperty("line.separator");
+   
+    public ClientService() 
+    { 
+        super(); 
+    } 
+
+    ClientService(Socket s) 
+    { 
+        socket = s; 
+
+    } 
+
+    public void run() 
+    {            
+        // Obtain the input stream and the output stream for the socket 
+        // A good practice is to encapsulate them with a BufferedReader 
+        // and a PrintWriter as shown below. 
+        BufferedReader in = null; 
+        PrintWriter out = null; 
+
+        // Print out details of this connection 
+        System.out.println("Accepted Client Address - " + socket.getInetAddress().getHostName()); 
+
+        try
+        {                                
+            in = new BufferedReader(new InputStreamReader(socket.getInputStream())); 
+            out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream())); 
+
+            // At this point, we can read for input and reply with appropriate output. 
+
+            // Run in a loop until runThread is set to false 
+            while(runThread) 
+            {                    
+                // read incoming stream 
+                BufferedReader br = null;
+                String filename;
+                String clientCommand = in.readLine(); 
+                System.out.println("Client Says :" + clientCommand);
+
+                if (clientCommand != null) {
+                    //timer.cancel();
+                    String[] delim = clientCommand.split(" ");
+
+                    if (delim.length != 3) {
+                        out.println("400 Bad Request"+line);//prints out if arguments are not of length 3
+                        out.flush();
+
+                        } else if (!delim[1].startsWith("/")) {
+                            out.println("400 Bad Request"+line); //prints out if the 2nd argument does not start with /
+                            out.flush();
+                        } else if (!delim[2].equals("HTTP/1.0")) {
+                            out.println("505 HTTP Version Not Supported"); //prints out wrong http version/
+                            out.flush();
+                        } else if (!delim[0].equals("GET")) {
+                            out.println("501 Not Implemented"+line); //prints out if the first agument does not equal get.
+                            out.flush();
+                            /*} else if (over 50 connections){
+                            out.println("503 Forbidden"); //prints forbidden if thread count is excedded 
+                            out.flush(); */
+                        } else if((delim.length==3) && (delim[1].startsWith("/")) && (delim[0].equals("GET"))  && (delim[2].equals("HTTP/1.0"))) {
+                            //checks if there are 3 arguments and also if 2nd argument starts with / and first with GET and if version 1.0
+                            filename=System.getProperty("user.dir")+File.separator+"doc_root"+File.separator+delim[1];
+                            File f = new File(filename);
+                            if(f.exists()){//If file exist then send a 200 ok response
+                                try{
+                                    br=new BufferedReader(new FileReader(filename));
+                                    String readline;
+                                    out.println("200 OK"+line);
+                                    out.flush();
+                                    while ((readline = br.readLine()) != null) {
+                                        out.println(readline);
+                                        out.flush();
+                                    }
+                                }catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                            else{
+                                out.println("404 Not Found"+line);
+                                out.flush();
+                            }
+                    
+                        } 
+                
+                }
+
+
+                if(!server) 
+                { 
+                    // Special command. Quit this thread 
+                    System.out.print("Server has already stopped"); 
+                    out.println("Server has already stopped"); 
+                    out.flush(); 
+                    runThread = false;   
+
+                } 
+
+                if(clientCommand.equalsIgnoreCase("quit")) { 
+                    // Special command. Quit this thread 
+                    runThread = false;   
+                    System.out.print("Stopping client thread for client : "); 
+                } else if(clientCommand.equalsIgnoreCase("end")) { 
+                    // Special command. Quit this thread and Stop the Server
+                    runThread = false;   
+                    System.out.print("Stopping client thread for client : "); 
+                    server = false;
+                } else {
+                        // Process it 
+                        out.println("Server Says : " + clientCommand); 
+                        out.flush(); 
+                }
+
+
+
+            }
+
+        } 
+        catch(Exception e) 
+        { 
+            e.printStackTrace(); 
+        } 
+        finally
+        { 
+            // Clean up 
+            try
+            {                    
+                in.close(); 
+                out.close(); 
+                socket.close(); 
+                System.out.println("...Stopped"); 
+            } 
+            catch(IOException ioe) 
+            { 
+                ioe.printStackTrace(); 
+            } 
+        } 
+    } 
+
+
+} 
